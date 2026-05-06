@@ -3,40 +3,9 @@ const { getLegalContext } = require("./legalContext");
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// ─── Scope guard ────────────────────────────────────────────────────────────
-// Keywords that suggest the input is NOT a phishing message (off-topic request)
-const OFF_TOPIC_PATTERNS = [
-  /^(hola|hi|hello|hey|buenas|buenos días|buenas tardes|buenas noches)\b/i,
-  /\b(receta|cocina|comida|película|canción|deporte|fútbol|política)\b/i,
-  /\b(cuéntame|háblame|explícame algo sobre)\b/i,
-  /\b(quién eres|qué eres|qué puedes hacer|quién te creó)\b/i,
-  /\b(escribe|redacta|genera|crea)\b(?!.*phishing)/i,
-  /\b(chiste|broma|poema|historia)\b/i,
-  /\b(clima|tiempo|temperatura)\b/i,
-  /^(cómo estás|cómo está|cómo te va|todo bien|gracias|ok|okey|de nada|hasta luego|adiós|chao)\b/i,
-];
-
-// Minimum signals that suggest this IS a phishing analysis request
-const IN_SCOPE_PATTERNS = [
-  /https?:\/\//i,
-  /\b(banco|bci|santander|falabella|ripley|estado|itau|scotiabank)\b/i,
-  /\b(clave|contraseña|rut|cuenta|tarjeta|transferencia|bloquea|verifica)\b/i,
-  /\b(sms|mensaje|whatsapp|link|enlace)\b/i,
-  /\b(phishing|fraude|estafa|engaño|sospechoso)\b/i,
-  /\b(que hago|que hacer|qu[eé] debo|deb[eé]r[ií]a hacer|debo hacer|denunci|a quien llamo|me robaron|me estafaron|me hackearon|me clonaron|me enga[nñ]aron)\b/i,
-  /\b(ciberseguridad|cyberseguridad|seguridad digital|delito inform|ley\s*\d+|cmf|anci|pdi)\b/i,
-  /\b(denunci|proteger|protejo|bloquear tarjeta|tarjeta bloqueada|cuenta bloqueada)\b/i,
-  /\b(qué es el phishing|cómo funciona|cómo me protejo|qué hago si|ayuda|ayúdame)\b/i,
-];
-
+// Scope guard — only block empty or very short inputs
 function isOffTopic(text) {
-  if (!text || text.trim().length < 5) return false;
-
-  const hasOffTopicSignal = OFF_TOPIC_PATTERNS.some((p) => p.test(text));
-  const hasInScopeSignal = IN_SCOPE_PATTERNS.some((p) => p.test(text));
-
-  // Off-topic only if has explicit off-topic signal AND no in-scope signal
-  return hasOffTopicSignal && !hasInScopeSignal;
+  return !text || text.trim().length < 3;
 }
 
 const OUT_OF_SCOPE_RESPONSE = {
