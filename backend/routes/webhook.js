@@ -69,7 +69,7 @@ router.post("/", async (req, res) => {
       return;
     }
 
-    const history = getHistory(from);
+    const history = await getHistory(from);
 
     const [domainResult, safeBrowsingResult] = await Promise.allSettled([
       targetUrl ? checkDomain(targetUrl) : Promise.resolve(null),
