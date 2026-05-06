@@ -79,15 +79,17 @@ router.post("/", async (req, res) => {
 });
 
 function formatWhatsAppReply(analysis, url) {
-  const icon = analysis.verdict === "FRAUDE" ? "🚨" : analysis.verdict === "LEGÍTIMO" ? "✅" : analysis.verdict === "SOSPECHOSO" ? "⚠️" : "👼";
+  const isOutOfScope = analysis.verdict === "FUERA_DE_SCOPE";
+  const icon = analysis.verdict === "FRAUDE" ? "🚨" : analysis.verdict === "LEGÍTIMO" ? "✅" : analysis.verdict === "SOSPECHOSO" ? "⚠️" : null;
+
   const lines = [
-    `${icon} *${analysis.verdict}*`,
-    "",
+    icon ? `${icon} *${analysis.verdict}*` : null,
+    icon ? "" : null,
     analysis.explanation,
     "",
     analysis.redFlags.length > 0 ? `*Señales de alerta:*\n${analysis.redFlags.map((f) => `• ${f}`).join("\n")}` : null,
-    "",
-    `*${analysis.verdict === "FUERA_DE_SCOPE" ? "Ángel te dice:" : "Qué hacer:"}* ${analysis.recommendation}`,
+    analysis.redFlags.length > 0 ? "" : null,
+    isOutOfScope ? analysis.recommendation : `*Qué hacer:* ${analysis.recommendation}`,
     "",
     "_Ángel 👼 — ImpactLab · Protección contra fraude bancario en Chile_",
   ];
