@@ -107,7 +107,9 @@ router.post("/", async (req, res) => {
     });
 
     const reply = formatWhatsAppReply(analysis, targetUrl);
-    pushHistory(from, originalText, reply);
+    // Store analysis summary as context (not the formatted reply)
+    const historySummary = `Analicé: "${originalText.slice(0, 100)}". Veredicto: ${analysis.verdict}. ${analysis.explanation}`;
+    pushHistory(from, originalText, historySummary);
     await sendWhatsAppMessage(from, reply);
   } catch (err) {
     console.error("webhook error:", err);
