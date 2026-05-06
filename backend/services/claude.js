@@ -23,7 +23,7 @@ const IN_SCOPE_PATTERNS = [
   /\b(clave|contraseña|rut|cuenta|tarjeta|transferencia|bloquea|verifica)\b/i,
   /\b(sms|mensaje|whatsapp|link|enlace)\b/i,
   /\b(phishing|fraude|estafa|engaño|sospechoso)\b/i,
-  /\b(qué hago|qué hacer|debería hacer|debo hacer|cómo denunci|dónde denunci|a quién llamo|me robaron|me estafaron|me hackearon|me clonaron|me engañaron)\b/i,
+  /\b(que hago|que hacer|qu[eé] debo|deb[eé]r[ií]a hacer|debo hacer|denunci|a quien llamo|me robaron|me estafaron|me hackearon|me clonaron|me enga[nñ]aron)\b/i,
   /\b(ciberseguridad|cyberseguridad|seguridad digital|delito inform|ley\s*\d+|cmf|anci|pdi)\b/i,
   /\b(denunci|proteger|protejo|bloquear tarjeta|tarjeta bloqueada|cuenta bloqueada)\b/i,
   /\b(qué es el phishing|cómo funciona|cómo me protejo|qué hago si|ayuda|ayúdame)\b/i,
