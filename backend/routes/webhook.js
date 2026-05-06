@@ -66,12 +66,21 @@ router.post("/", async (req, res) => {
       originalText = message.text.body;
       targetUrl = extractUrl(originalText);
     } else if (message.type === "image") {
-      // Download media and run OCR
-      const mediaId = message.image.id;
-      const mediaUrl = await getMediaUrl(mediaId);
-      const base64 = await downloadMediaAsBase64(mediaUrl);
-      originalText = await extractTextFromImage(base64);
-      targetUrl = extractUrl(originalText);
+      try {
+        const mediaId = message.image.id;
+        const mediaUrl = await getMediaUrl(mediaId);
+        const base64 = await downloadMediaAsBase64(mediaUrl);
+        originalText = await extractTextFromImage(base64);
+        targetUrl = extractUrl(originalText);
+        if (!originalText) {
+          await sendWhatsAppMessage(from, "No pude leer texto en la imagen 🔍\n\nCopia y pega el mensaje sospechoso como texto y lo analizo al tiro.");
+          return;
+        }
+      } catch (ocrErr) {
+        console.error("OCR error:", ocrErr.message);
+        await sendWhatsAppMessage(from, "No pude procesar la imagen en este momento 😕\n\nCopia y pega el texto del mensaje sospechoso y lo reviso igual de bien.");
+        return;
+      }
     } else {
       await sendWhatsAppMessage(from, "Envíame el mensaje sospechoso como texto o pantallazo para analizarlo 🔍");
       return;
