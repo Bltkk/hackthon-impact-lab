@@ -84,9 +84,14 @@ router.post("/", async (req, res) => {
     });
 
     const reply = formatWhatsAppReply(analysis, targetUrl);
-    // Store analysis summary as context (not the formatted reply)
-    const historySummary = `Analicé: "${originalText.slice(0, 100)}". Veredicto: ${analysis.verdict}. ${analysis.explanation}`;
-    pushHistory(from, originalText, historySummary);
+    // Build a non-empty user content for history (Claude rejects empty user messages)
+    const userForHistory = originalText && originalText.trim().length > 0
+      ? originalText
+      : imageBase64
+        ? "[Captura de pantalla enviada para análisis]"
+        : "[mensaje vacío]";
+    const historySummary = `Análisis: ${analysis.verdict}. ${analysis.explanation}`;
+    await pushHistory(from, userForHistory, historySummary);
     await sendWhatsAppMessage(from, reply);
   } catch (err) {
     console.error("webhook error:", err);

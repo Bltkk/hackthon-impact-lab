@@ -177,10 +177,13 @@ async function analyzePhishing({ originalText, url, domainResult, safeBrowsingRe
     .join("\n\n");
 
   // Build multi-turn messages with conversation history
+  // Skip any turn with empty content — Claude API rejects empty messages
   const messages = [];
   for (const turn of history) {
-    messages.push({ role: "user", content: turn.user });
-    messages.push({ role: "assistant", content: turn.assistant });
+    const userContent = (turn.user && turn.user.trim()) || "[Captura sin texto]";
+    const assistantContent = (turn.assistant && turn.assistant.trim()) || "[análisis previo]";
+    messages.push({ role: "user", content: userContent });
+    messages.push({ role: "assistant", content: assistantContent });
   }
 
   // Current turn — image goes as content array if present
