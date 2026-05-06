@@ -1,15 +1,19 @@
 const { createClient } = require("@supabase/supabase-js");
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+function getClient() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key);
+}
 
 const MAX_TURNS = 6;
 const TTL_HOURS = 1;
 
 async function getHistory(phoneNumber) {
   try {
+    const supabase = getClient();
+    if (!supabase) return [];
     const { data, error } = await supabase
       .from("conversations")
       .select("turns, updated_at")
@@ -35,6 +39,8 @@ async function getHistory(phoneNumber) {
 
 async function pushHistory(phoneNumber, userText, assistantSummary) {
   try {
+    const supabase = getClient();
+    if (!supabase) return;
     const turns = await getHistory(phoneNumber);
     turns.push({ user: userText, assistant: assistantSummary });
     if (turns.length > MAX_TURNS) turns.shift();
@@ -49,6 +55,8 @@ async function pushHistory(phoneNumber, userText, assistantSummary) {
 
 async function clearHistory(phoneNumber) {
   try {
+    const supabase = getClient();
+    if (!supabase) return;
     await supabase.from("conversations").delete().eq("phone_number", phoneNumber);
   } catch (err) {
     console.error("clearHistory error:", err.message);
