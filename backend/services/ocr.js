@@ -9,7 +9,8 @@ const VISION_URL = "https://vision.googleapis.com/v1/images:annotate";
 async function extractTextFromImage(base64Image) {
   const apiKey = process.env.GOOGLE_VISION_KEY;
   if (!apiKey) {
-    throw new Error("El análisis de imágenes no está disponible en este momento");
+    console.error("[ocr] GOOGLE_VISION_KEY not set");
+    throw new Error("OCR_KEY_MISSING");
   }
 
   const body = {
@@ -27,13 +28,21 @@ async function extractTextFromImage(base64Image) {
     body: JSON.stringify(body),
   });
 
+  const data = await res.json();
+
   if (!res.ok) {
-    console.error(`Vision API error: ${res.status}`);
-    throw new Error("Error al procesar la imagen. Intenta pegar el texto directamente.");
+    console.error(`[ocr] Vision API ${res.status}:`, JSON.stringify(data));
+    throw new Error(`OCR_API_ERROR_${res.status}`);
   }
 
-  const data = await res.json();
-  return data.responses?.[0]?.fullTextAnnotation?.text ?? "";
+  if (data.responses?.[0]?.error) {
+    console.error("[ocr] Vision response error:", data.responses[0].error);
+    throw new Error("OCR_RESPONSE_ERROR");
+  }
+
+  const text = data.responses?.[0]?.fullTextAnnotation?.text ?? "";
+  console.log(`[ocr] extracted ${text.length} chars`);
+  return text;
 }
 
 module.exports = { extractTextFromImage };

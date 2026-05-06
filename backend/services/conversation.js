@@ -13,14 +13,21 @@ const TTL_HOURS = 1;
 async function getHistory(phoneNumber) {
   try {
     const supabase = getClient();
-    if (!supabase) return [];
+    if (!supabase) {
+      console.warn("[conversation] Supabase client not configured");
+      return [];
+    }
     const { data, error } = await supabase
       .from("conversations")
       .select("turns, updated_at")
       .eq("phone_number", phoneNumber)
       .single();
 
-    if (error || !data) return [];
+    if (error) {
+      if (error.code !== "PGRST116") console.error("[conversation] getHistory error:", error.message);
+      return [];
+    }
+    if (!data) return [];
 
     // Expire after TTL_HOURS of inactivity
     const updatedAt = new Date(data.updated_at);
@@ -45,11 +52,14 @@ async function pushHistory(phoneNumber, userText, assistantSummary) {
     turns.push({ user: userText, assistant: assistantSummary });
     if (turns.length > MAX_TURNS) turns.shift();
 
-    await supabase
+    const { error } = await supabase
       .from("conversations")
       .upsert({ phone_number: phoneNumber, turns, updated_at: new Date().toISOString() });
+
+    if (error) console.error("[conversation] pushHistory error:", error.message);
+    else console.log(`[conversation] saved ${turns.length} turns for ${phoneNumber}`);
   } catch (err) {
-    console.error("pushHistory error:", err.message);
+    console.error("[conversation] pushHistory exception:", err.message);
   }
 }
 
