@@ -106,9 +106,9 @@ OUTPUT — responde SIEMPRE con este JSON exacto, sin texto antes ni después:
  * Analyzes a suspicious message/URL using Claude.
  * Returns early with OUT_OF_SCOPE_RESPONSE if the input is not a phishing analysis request.
  */
-async function analyzePhishing({ originalText, url, domainResult, safeBrowsingResult, virusTotalResult, phishTankResult }) {
-  // Scope guard — skip API call for off-topic inputs
-  if (isOffTopic(originalText) && !url) {
+async function analyzePhishing({ originalText, url, domainResult, safeBrowsingResult, virusTotalResult, phishTankResult, history = [] }) {
+  // Scope guard — skip API call for off-topic inputs with no prior context
+  if (isOffTopic(originalText) && !url && history.length === 0) {
     return OUT_OF_SCOPE_RESPONSE;
   }
 
@@ -146,11 +146,19 @@ async function analyzePhishing({ originalText, url, domainResult, safeBrowsingRe
     .filter(Boolean)
     .join("\n\n");
 
+  // Build multi-turn messages with conversation history
+  const messages = [];
+  for (const turn of history) {
+    messages.push({ role: "user", content: turn.user });
+    messages.push({ role: "assistant", content: turn.assistant });
+  }
+  messages.push({ role: "user", content: userMessage });
+
   const response = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 512,
     system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: userMessage }],
+    messages,
   });
 
   const raw = response.content[0].text.trim();

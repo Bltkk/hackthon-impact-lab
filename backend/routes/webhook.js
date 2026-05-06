@@ -11,6 +11,29 @@ const WA_TOKEN = process.env.WHATSAPP_TOKEN;
 const WA_PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
 
+// In-memory conversation history per user (phone number → last 4 turns)
+// Entries expire after 30 minutes of inactivity
+const conversations = new Map();
+const HISTORY_TTL = 30 * 60 * 1000;
+const MAX_TURNS = 4;
+
+function getHistory(from) {
+  const entry = conversations.get(from);
+  if (!entry) return [];
+  if (Date.now() - entry.updatedAt > HISTORY_TTL) {
+    conversations.delete(from);
+    return [];
+  }
+  return entry.turns;
+}
+
+function pushHistory(from, userText, assistantText) {
+  const turns = getHistory(from);
+  turns.push({ user: userText, assistant: assistantText });
+  if (turns.length > MAX_TURNS) turns.shift();
+  conversations.set(from, { turns, updatedAt: Date.now() });
+}
+
 // WhatsApp webhook verification (GET)
 router.get("/", (req, res) => {
   const mode = req.query["hub.mode"];
@@ -59,6 +82,8 @@ router.post("/", async (req, res) => {
       return;
     }
 
+    const history = getHistory(from);
+
     const [domainResult, safeBrowsingResult] = await Promise.allSettled([
       targetUrl ? checkDomain(targetUrl) : Promise.resolve(null),
       targetUrl ? checkSafeBrowsing(targetUrl) : Promise.resolve(null),
@@ -69,9 +94,11 @@ router.post("/", async (req, res) => {
       url: targetUrl,
       domainResult: domainResult.value,
       safeBrowsingResult: safeBrowsingResult.value,
+      history,
     });
 
     const reply = formatWhatsAppReply(analysis, targetUrl);
+    pushHistory(from, originalText, reply);
     await sendWhatsAppMessage(from, reply);
   } catch (err) {
     console.error("webhook error:", err);
