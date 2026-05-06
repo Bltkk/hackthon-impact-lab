@@ -79,7 +79,7 @@ router.post("/", async (req, res) => {
 });
 
 function formatWhatsAppReply(analysis, url) {
-  const icon = analysis.verdict === "FRAUDE" ? "⚠️" : analysis.verdict === "LEGÍTIMO" ? "✅" : "🔶";
+  const icon = analysis.verdict === "FRAUDE" ? "🚨" : analysis.verdict === "LEGÍTIMO" ? "✅" : analysis.verdict === "SOSPECHOSO" ? "⚠️" : "👼";
   const lines = [
     `${icon} *${analysis.verdict}*`,
     "",
@@ -87,9 +87,9 @@ function formatWhatsAppReply(analysis, url) {
     "",
     analysis.redFlags.length > 0 ? `*Señales de alerta:*\n${analysis.redFlags.map((f) => `• ${f}`).join("\n")}` : null,
     "",
-    `*Qué hacer:* ${analysis.recommendation}`,
+    `*${analysis.verdict === "FUERA_DE_SCOPE" ? "Ángel te dice:" : "Qué hacer:"}* ${analysis.recommendation}`,
     "",
-    "_ImpactLab — Detector de Phishing Bancario Chile_",
+    "_Ángel 👼 — ImpactLab · Protección contra fraude bancario en Chile_",
   ];
   return lines.filter((l) => l !== null).join("\n");
 }
