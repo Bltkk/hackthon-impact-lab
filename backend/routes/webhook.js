@@ -4,7 +4,6 @@ const fetch = require("node-fetch");
 const { analyzePhishing } = require("../services/claude");
 const { checkDomain } = require("../services/domainCheck");
 const { checkSafeBrowsing } = require("../services/safeBrowsing");
-const { extractTextFromImage } = require("../services/ocr");
 const { extractUrl } = require("../services/urlExtractor");
 const { getHistory, pushHistory } = require("../services/conversation");
 
@@ -39,6 +38,8 @@ router.post("/", async (req, res) => {
     const from = message.from;
     let originalText = "";
     let targetUrl = null;
+    let imageBase64 = null;
+    let imageMediaType = null;
 
     if (message.type === "text") {
       originalText = message.text.body;
@@ -46,17 +47,13 @@ router.post("/", async (req, res) => {
     } else if (message.type === "image") {
       try {
         const mediaId = message.image.id;
-        const mediaUrl = await getMediaUrl(mediaId);
-        const base64 = await downloadMediaAsBase64(mediaUrl);
-        originalText = await extractTextFromImage(base64);
-        targetUrl = extractUrl(originalText);
-        if (!originalText) {
-          await sendWhatsAppMessage(from, "No pude leer texto en la imagen 🔍\n\nCopia y pega el mensaje sospechoso como texto y lo analizo al tiro.");
-          return;
-        }
-      } catch (ocrErr) {
-        console.error("OCR error:", ocrErr.message);
-        await sendWhatsAppMessage(from, "No pude procesar la imagen en este momento 😕\n\nCopia y pega el texto del mensaje sospechoso y lo reviso igual de bien.");
+        const mediaInfo = await getMediaInfo(mediaId);
+        imageBase64 = await downloadMediaAsBase64(mediaInfo.url);
+        imageMediaType = mediaInfo.mimeType || "image/jpeg";
+        originalText = message.image.caption || "";
+      } catch (imgErr) {
+        console.error("[webhook] image download error:", imgErr.message);
+        await sendWhatsAppMessage(from, "No pude descargar la imagen 😕\n\nCopia y pega el texto del mensaje sospechoso y lo reviso al tiro.");
         return;
       }
     } else {
@@ -64,7 +61,7 @@ router.post("/", async (req, res) => {
       return;
     }
 
-    if (!originalText && !targetUrl) {
+    if (!originalText && !targetUrl && !imageBase64) {
       await sendWhatsAppMessage(from, "No encontré texto ni enlace en tu mensaje. Intenta reenviar el SMS completo.");
       return;
     }
@@ -82,6 +79,8 @@ router.post("/", async (req, res) => {
       domainResult: domainResult.value,
       safeBrowsingResult: safeBrowsingResult.value,
       history,
+      imageBase64,
+      imageMediaType,
     });
 
     const reply = formatWhatsAppReply(analysis, targetUrl);
@@ -131,12 +130,12 @@ async function sendWhatsAppMessage(to, text) {
   }
 }
 
-async function getMediaUrl(mediaId) {
+async function getMediaInfo(mediaId) {
   const res = await fetch(`https://graph.facebook.com/v19.0/${mediaId}`, {
     headers: { Authorization: `Bearer ${WA_TOKEN}` },
   });
   const data = await res.json();
-  return data.url;
+  return { url: data.url, mimeType: data.mime_type };
 }
 
 async function downloadMediaAsBase64(url) {

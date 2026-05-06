@@ -132,9 +132,9 @@ OUTPUT — JSON ESTRICTO, SIN TEXTO ANTES NI DESPUÉS
  * Analyzes a suspicious message/URL using Claude.
  * Returns early with OUT_OF_SCOPE_RESPONSE if the input is not a phishing analysis request.
  */
-async function analyzePhishing({ originalText, url, domainResult, safeBrowsingResult, virusTotalResult, phishTankResult, history = [] }) {
+async function analyzePhishing({ originalText, url, domainResult, safeBrowsingResult, virusTotalResult, phishTankResult, history = [], imageBase64, imageMediaType }) {
   // Scope guard — skip API call for off-topic inputs with no prior context
-  if (isOffTopic(originalText) && !url && history.length === 0) {
+  if (isOffTopic(originalText) && !url && !imageBase64 && history.length === 0) {
     return OUT_OF_SCOPE_RESPONSE;
   }
 
@@ -163,8 +163,12 @@ async function analyzePhishing({ originalText, url, domainResult, safeBrowsingRe
 
   const legalContext = getLegalContext({ isMalicious, hasDataSignal: false });
 
-  const userMessage = [
-    `Mensaje a analizar:\n"${originalText}"`,
+  const textPart = [
+    imageBase64
+      ? "Analiza esta imagen — el usuario te la mandó porque sospecha que es fraude. Lee el texto, identifica logos, dominios visibles, links, datos pedidos."
+      : originalText
+        ? `Mensaje a analizar:\n"${originalText}"`
+        : null,
     url ? `URL extraída: ${url}` : null,
     signals.length > 0 ? `\nSeñales técnicas previas:\n${signals.join("\n")}` : null,
     legalContext || null,
@@ -178,7 +182,19 @@ async function analyzePhishing({ originalText, url, domainResult, safeBrowsingRe
     messages.push({ role: "user", content: turn.user });
     messages.push({ role: "assistant", content: turn.assistant });
   }
-  messages.push({ role: "user", content: userMessage });
+
+  // Current turn — image goes as content array if present
+  if (imageBase64) {
+    messages.push({
+      role: "user",
+      content: [
+        { type: "image", source: { type: "base64", media_type: imageMediaType || "image/jpeg", data: imageBase64 } },
+        { type: "text", text: textPart },
+      ],
+    });
+  } else {
+    messages.push({ role: "user", content: textPart });
+  }
 
   const response = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
