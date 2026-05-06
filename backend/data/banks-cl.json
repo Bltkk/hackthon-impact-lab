@@ -1,0 +1,23 @@
+{
+  "banks": [
+    { "name": "BCI",             "domains": ["bci.cl"] },
+    { "name": "Banco Estado",    "domains": ["bancoestado.cl"] },
+    { "name": "Santander",       "domains": ["santander.cl"] },
+    { "name": "Banco de Chile",  "domains": ["bancochile.cl"] },
+    { "name": "Itaú",            "domains": ["itau.cl"] },
+    { "name": "Banco Falabella", "domains": ["bancofalabella.com"] },
+    { "name": "Banco Ripley",    "domains": ["bancoripley.cl"] },
+    { "name": "BICE",            "domains": ["bice.cl"] },
+    { "name": "Banco Security",  "domains": ["bancosecurity.cl"] },
+    { "name": "Scotiabank",      "domains": ["scotiabank.cl"] },
+    { "name": "Consorcio",       "domains": ["bancoconsorcio.cl"] },
+    { "name": "COOPEUCH",        "domains": ["coopeuch.cl"] }
+  ],
+  "officialSubdomainPatterns": [
+    "sucursalvirtual",
+    "www",
+    "app",
+    "login",
+    "mi"
+  ]
+}

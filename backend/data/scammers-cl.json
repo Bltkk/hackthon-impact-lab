@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "source": "CMF Chile — Alertas al público",
+    "url": "https://www.cmfchile.cl/portal/principal/613/w3-propertyvalue-43545.html",
+    "lastUpdated": "2026-05-06",
+    "note": "Actualizar semanalmente con scraper o revisión manual del portal CMF"
+  },
+  "unauthorizedEntities": [
+    {
+      "name": "Inversiones Seguras Chile",
+      "domains": ["inversionesseguraschile.cl", "inv-seguras.com"],
+      "alertDate": "2025-03-01",
+      "type": "inversiones_no_autorizadas"
+    },
+    {
+      "name": "Banco Digital CL (falso)",
+      "domains": ["bancodigitalcl.com", "b-digital-cl.net"],
+      "alertDate": "2025-01-15",
+      "type": "suplantacion_banco"
+    },
+    {
+      "name": "CryptoChile Pro",
+      "domains": ["cryptochilepro.com", "crypto-chile.net"],
+      "alertDate": "2024-11-20",
+      "type": "cripto_fraude"
+    }
+  ],
+  "knownPhishingPatterns": [
+    "bci-seguridad",
+    "bancochile-alerta",
+    "bancoestado-verificacion",
+    "santander-cl-seguro",
+    "itau-chile-acceso",
+    "cuenta-bloqueada-cl",
+    "verificacion-banco-chile"
+  ]
+}
