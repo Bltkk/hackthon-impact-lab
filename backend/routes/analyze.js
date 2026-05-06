@@ -66,7 +66,7 @@ router.post("/", async (req, res) => {
     });
   } catch (err) {
     console.error("analyze error:", err);
-    res.status(500).json({ error: "Error interno al analizar el mensaje" });
+    res.status(500).json({ error: "Error interno al analizar el mensaje", _debug: err.message });
   }
 });
 
