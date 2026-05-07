@@ -37,7 +37,7 @@ export default function VerdictCard({ result }: VerdictCardProps) {
   const cfg = VERDICT_CONFIG[result.verdict];
 
   return (
-    <div className={`rounded-xl border p-5 ${cfg.bg}`}>
+    <div className={`rounded-2xl rounded-tl-sm border p-4 ${cfg.bg}`}>
       <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold mb-3 ${cfg.title}`}>
         <span>{cfg.icon}</span>
         <span>{cfg.badge}</span>

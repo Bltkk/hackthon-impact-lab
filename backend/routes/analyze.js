@@ -14,7 +14,7 @@ const { extractUrl } = require("../services/urlExtractor");
  */
 router.post("/", async (req, res) => {
   try {
-    const { text, url: rawUrl, imageBase64 } = req.body;
+    const { text, url: rawUrl, imageBase64, history = [] } = req.body;
 
     let originalText = text ?? "";
     let targetUrl = rawUrl ?? null;
@@ -48,6 +48,7 @@ router.post("/", async (req, res) => {
       safeBrowsingResult: safeBrowsingResult.value,
       virusTotalResult: virusTotalResult.value,
       phishTankResult: phishTankResult.value,
+      history,
     });
 
     res.json({
