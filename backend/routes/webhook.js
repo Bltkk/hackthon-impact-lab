@@ -11,6 +11,15 @@ const WA_TOKEN = process.env.WHATSAPP_TOKEN;
 const WA_PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
 
+// Warn at startup if WhatsApp vars are missing
+if (!WA_TOKEN || !WA_PHONE_ID || !VERIFY_TOKEN) {
+  console.warn("[webhook] ⚠️  Missing WhatsApp env vars:", {
+    WHATSAPP_TOKEN: !!WA_TOKEN,
+    WHATSAPP_PHONE_NUMBER_ID: !!WA_PHONE_ID,
+    WHATSAPP_VERIFY_TOKEN: !!VERIFY_TOKEN,
+  });
+}
+
 // WhatsApp webhook verification (GET)
 router.get("/", (req, res) => {
   const mode = req.query["hub.mode"];
@@ -18,9 +27,10 @@ router.get("/", (req, res) => {
   const challenge = req.query["hub.challenge"];
 
   if (mode === "subscribe" && token === VERIFY_TOKEN) {
-    console.log("WhatsApp webhook verified");
+    console.log("[webhook] ✅ WhatsApp webhook verified");
     return res.status(200).send(challenge);
   }
+  console.warn("[webhook] ❌ Webhook verification failed — token mismatch or wrong mode");
   res.sendStatus(403);
 });
 
@@ -29,13 +39,16 @@ router.post("/", async (req, res) => {
   // Acknowledge immediately — WhatsApp requires fast 200 response
   res.sendStatus(200);
 
+  let from = null;
   try {
     const entry = req.body.entry?.[0];
     const change = entry?.changes?.[0]?.value;
     const message = change?.messages?.[0];
     if (!message) return;
 
-    const from = message.from;
+    from = message.from;
+    console.log(`[webhook] 📨 Message from ${from}, type=${message.type}`);
+
     let originalText = "";
     let targetUrl = null;
     let imageBase64 = null;
@@ -67,6 +80,7 @@ router.post("/", async (req, res) => {
     }
 
     const history = await getHistory(from);
+    console.log(`[webhook] 📚 History: ${history.length} turns for ${from}`);
 
     const [domainResult, safeBrowsingResult] = await Promise.allSettled([
       targetUrl ? checkDomain(targetUrl) : Promise.resolve(null),
@@ -83,18 +97,33 @@ router.post("/", async (req, res) => {
       imageMediaType,
     });
 
+    console.log(`[webhook] 🔍 Verdict for ${from}: ${analysis.verdict} (${analysis.confidence}%)`);
+
     const reply = formatWhatsAppReply(analysis, targetUrl);
-    // Build a non-empty user content for history (Claude rejects empty user messages)
-    const userForHistory = originalText && originalText.trim().length > 0
+
+    const userForHistory = originalText?.trim().length > 0
       ? originalText
       : imageBase64
         ? "[Captura de pantalla enviada para análisis]"
         : "[mensaje vacío]";
     const historySummary = `Análisis: ${analysis.verdict}. ${analysis.explanation}`;
     await pushHistory(from, userForHistory, historySummary);
+
     await sendWhatsAppMessage(from, reply);
+    console.log(`[webhook] ✅ Reply sent to ${from}`);
   } catch (err) {
-    console.error("webhook error:", err);
+    console.error("[webhook] ❌ Error processing message:", err.message, err.stack);
+    // Notify the user so they don't get silence
+    if (from) {
+      try {
+        await sendWhatsAppMessage(
+          from,
+          "Ocurrió un error al analizar tu mensaje 😕\nIntenta de nuevo en unos segundos. Si el problema persiste, envíame el texto copiado directamente."
+        );
+      } catch (sendErr) {
+        console.error("[webhook] Could not send error reply:", sendErr.message);
+      }
+    }
   }
 });
 
@@ -117,6 +146,10 @@ function formatWhatsAppReply(analysis, url) {
 }
 
 async function sendWhatsAppMessage(to, text) {
+  if (!WA_TOKEN || !WA_PHONE_ID) {
+    console.error("[webhook] Cannot send — WA_TOKEN or WA_PHONE_ID not set");
+    return;
+  }
   const res = await fetch(`https://graph.facebook.com/v19.0/${WA_PHONE_ID}/messages`, {
     method: "POST",
     headers: {
@@ -131,7 +164,8 @@ async function sendWhatsAppMessage(to, text) {
     }),
   });
   if (!res.ok) {
-    console.error(`WhatsApp send error: ${res.status} to ${to}`);
+    const body = await res.text().catch(() => "");
+    console.error(`[webhook] WhatsApp send error: HTTP ${res.status} to ${to} — ${body}`);
   }
 }
 
@@ -139,6 +173,7 @@ async function getMediaInfo(mediaId) {
   const res = await fetch(`https://graph.facebook.com/v19.0/${mediaId}`, {
     headers: { Authorization: `Bearer ${WA_TOKEN}` },
   });
+  if (!res.ok) throw new Error(`getMediaInfo failed: HTTP ${res.status}`);
   const data = await res.json();
   return { url: data.url, mimeType: data.mime_type };
 }
@@ -147,6 +182,7 @@ async function downloadMediaAsBase64(url) {
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${WA_TOKEN}` },
   });
+  if (!res.ok) throw new Error(`downloadMedia failed: HTTP ${res.status}`);
   const buffer = await res.buffer();
   return buffer.toString("base64");
 }

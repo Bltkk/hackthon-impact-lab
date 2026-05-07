@@ -15,10 +15,16 @@ export interface AnalysisResult {
   };
 }
 
+export interface HistoryTurn {
+  user: string;
+  assistant: string;
+}
+
 export async function analyzeMessage(payload: {
   text?: string;
   url?: string;
   imageBase64?: string;
+  history?: HistoryTurn[];
 }): Promise<AnalysisResult> {
   const res = await fetch(`${BACKEND_URL}/api/analyze`, {
     method: "POST",
