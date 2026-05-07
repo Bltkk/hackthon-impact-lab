@@ -372,7 +372,7 @@ async function analyzePhishing({ originalText, url, domainResult, safeBrowsingRe
   }
 
   const response = await client.messages.create({
-    model: "claude-sonnet-4-5-20251001",
+    model: "claude-sonnet-4-6",
     max_tokens: 4000,
     // Extended Thinking: Claude razona internamente antes de responder
     // Mejora precisión en casos ambiguos sin exponer el razonamiento al usuario
